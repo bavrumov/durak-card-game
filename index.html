@@ -1,0 +1,300 @@
+<!DOCTYPE HTML>
+<!-- Boris Avrumov -->
+<html>
+	<head>
+		<title></title>
+		<style>
+		div img{margin-left:3px;}
+		#trump{z-index:-1; position:relative; left:-95px; top:8px;}
+		p{display:inline-block; width:45%;}
+		#right{margin-top:-200px}
+		button{width:120px; height:120px; float:right; margin-right:10px; border-radius:60px; font-size:22pt; background-color:indigo;
+				color:skyblue; font-family:Candara; font-weight:700;}
+		body{background-image:url(stoneyellow.jpg); background-position:top left; background-repeat:repeat; background-attachment:fixed;}
+		#rules{width:500px; font-size:14pt; font-family:Calibri; z-index:1; display:none; position:absolute; margin-top:20px; background-color:limegreen;
+				opacity:.84; border-radius:10px; border-style:groove; border-width:5px; font-weight:900;}
+		</style>
+		<script type="text/javascript" src="PlayingCardObjects.js"></script>
+		<script>
+		function display()
+		{
+			deckDisplay.innerHTML=durakDeck.getNumCards();
+			while (playerHandImageArray.length!=0)
+				playerHandElement.removeChild(playerHandImageArray[0]);//clears the hand
+			while (computerHandImageArray.length!=0)
+				computerHandElement.removeChild(computerHandImageArray[0]);
+			while (battlefieldImageArray.length!=0)
+				battlefield.removeChild(battlefieldImageArray[0]);
+			removeUndefinedCards();
+			var parameter=0;
+			while (playerHandImageArray.length<playerHand.getNumCards())//rerenders the hand with appropriate onclicks
+			{
+				var newImg=document.createElement("img");
+				newImg.setAttribute("onclick","playCard("+parameter+");");
+				playerHandElement.appendChild(newImg);
+				parameter++;
+			}
+			while (computerHandImageArray.length<computerHand.getNumCards())
+			{
+				var newImg=document.createElement("img");
+				computerHandElement.appendChild(newImg);
+			}
+			for (var i=0; i<playerHand.getNumCards(); i++)
+				playerHandImageArray[i].src=playerHand.peekCard(i).image;
+			for (var i=0; i<computerHand.getNumCards(); i++)
+				computerHandImageArray[i].src="./cardimages/back-blue-75-2.png";
+			while (battlefieldImageArray.length<battle.getNumCards())
+			{
+				var newImg=document.createElement("img");
+				battlefield.appendChild(newImg);
+			}
+			for (var i=0; i<battle.getNumCards(); i++)
+			{
+				battlefieldImageArray[i].src=battle.peekCard(i).image;
+				if (i%2==1)
+					battlefieldImageArray[i].style.marginLeft='-20px';
+				else
+					battlefieldImageArray[i].style.marginLeft='20px';
+			}
+			if (battlefieldImageArray.length%2==1)
+				userBtn.innerHTML="Take All Cards";
+			else
+				userBtn.innerHTML="End The Round";
+			removeUndefinedCards();
+			if (yourTurn)
+				centerText.innerHTML="It is your turn!";
+			else
+				centerText.innerHTML="It is the computer's turn!";
+			checkForVictor();
+		}
+		
+		function dealHands()
+		{
+			playerHand=new CardDeck();
+			computerHand=new CardDeck();
+			for (var i=0; i<6; i++)
+			{
+				playerHand.deck.push(durakDeck.dealCard());
+				computerHand.deck.push(durakDeck.dealCard());
+			}
+			removeUndefinedCards(); //for test purposes when you start with a deck of less than 12 cards.
+		}
+		
+		function playCard(handPosition)
+		{
+			battlefield.innerHTML="";
+			if (battle.getNumCards()==0 || (yourTurn==false && playerHand.peekCard(handPosition).suit==battle.peekCard(battle.getNumCards()-1).suit &&playerHand.peekCard(handPosition).rank>battle.peekCard(battle.getNumCards()-1).rank && battle.peekCard(battle.getNumCards()-1).suit!=koser && playerHand.peekCard(handPosition).suit!=koser) || (playerHand.peekCard(handPosition).suit==koser && battle.peekCard(battle.getNumCards()-1).suit==koser && yourTurn==false && playerHand.peekCard(handPosition).rank>battle.peekCard(battle.getNumCards()-1).rank) || (playerHand.peekCard(handPosition).suit==koser && battle.peekCard(battle.getNumCards()-1).suit!=koser && yourTurn==false))
+			{
+				if (battle.getNumCards()%2==0 && battle.getNumCards()!=0)
+					battlefield.innerHTML="You can't play that card now! Maybe you should try ending the round? <br /><br />";
+				else
+				{
+					battle.deck.push(playerHand.removeCard(handPosition));
+					if (yourTurn==true)
+						opponentDefense();
+					else
+						opponentOffense();
+					display();
+					return;
+				}
+			}
+			else
+			{
+				if (yourTurn==true)
+				{
+					for (var i=0; i<battle.getNumCards(); i++)
+						if (battle.getNumCards()%2==0 && playerHand.peekCard(handPosition).rank==battle.peekCard(i).rank)
+						{
+							battle.deck.push(playerHand.removeCard(handPosition));
+							display();
+							opponentDefense();
+							return;
+						}
+				}
+				else
+					battlefield.innerHTML="You can't play that card! If you can't beat it, press 'End The Round' to take all the cards here! <br /><br />";
+			}
+			battlefield.innerHTML="Stop trying to play cards that you CAN'T PLAY!<br /><br />";
+			display();
+		}
+		
+		function opponentDefense()
+		{
+			for (var i=0; i<computerHand.getNumCards(); i++)
+			{
+				if (battle.peekCard(battle.getNumCards()-1).suit!=koser && computerHand.peekCard(i).rank>battle.peekCard(battle.getNumCards()-1).rank && computerHand.peekCard(i).suit==battle.peekCard(battle.getNumCards()-1).suit)
+				{
+					battle.deck.push(computerHand.removeCard(i));
+					display();
+					return;
+				}
+				else
+					if ((computerHand.peekCard(i).suit==koser && battle.peekCard(battle.getNumCards()-1).suit==koser && computerHand.peekCard(i).rank>battle.peekCard(battle.getNumCards()-1).rank) || (computerHand.peekCard(i).suit==koser && battle.peekCard(battle.getNumCards()-1).suit!=koser))
+					{
+						battle.deck.push(computerHand.removeCard(i));
+						display();
+						return;
+					}
+			}
+			computerTakeCards();
+		}
+		
+		function computerTakeCards()
+		{
+			battlefield.innerHTML="Opponent took the cards!";
+			while (battle.getNumCards()>0)
+				computerHand.deck.push(battle.dealCard());
+			tookCards=true;
+			roundEnd();
+		}
+		
+		function roundEnd(beat)
+		{
+			if (WINNER==0)
+			{
+				battlefield.innerHTML="";
+				if (!beat)
+					yourTurn=true;
+				else
+				{
+					if (battle.getNumCards()%2==1)
+						while (battle.deck.length!=0)
+							playerHand.deck.push(battle.dealCard());
+					else
+					{
+						while(battle.getNumCards()!=0)
+							beatPile.deck.push(battle.dealCard());
+						yourTurn=!yourTurn;
+					}
+				}
+				if (durakDeck.getNumCards()>0)
+				{
+					while(playerHand.getNumCards()<6)
+							playerHand.deck.push(durakDeck.dealCard());
+					while(computerHand.getNumCards()<6)
+						computerHand.deck.push(durakDeck.dealCard());
+				}
+				
+				beatenCardsCounter.innerHTML="BeatenCards ("+beatPile.getNumCards()+")";
+				display();
+				if (yourTurn==false && WINNER==0)
+					computerTurn();
+			}
+			else
+				initialize();
+		}
+		
+		function computerTurn()
+		{
+			battle.deck.push(computerHand.removeCard(parseInt(Math.random()*computerHand.getNumCards())));
+			tookCards=false;
+			display();
+		}
+		
+		function opponentOffense()
+		{
+			battlefield.innerHTML="";
+			for (var i=0; i<computerHand.getNumCards(); i++)
+				for (var d=0; d<battle.getNumCards(); d++)
+				{
+					if (computerHand.peekCard(i).rank==battle.peekCard(d).rank)
+					{
+						battle.deck.push(computerHand.removeCard(i));
+						return;
+					}
+					else
+						if (i==computerHand.getNumCards() && d==battle.getNumCards())
+							roundEnd(true);
+				}
+		}
+		
+		function checkForVictor()
+		{
+			WINNER=0;
+			if (durakDeck.isEmpty())
+			{
+				if (playerHand.isEmpty() && (yourTurn==false || tookCards==true))
+					WINNER='Human Player';
+				if (computerHand.isEmpty() && (yourTurn==true || tookCards==false))
+					WINNER='Computer Player';
+				if (computerHand.isEmpty() && playerHand.isEmpty())
+				{
+					centerText.innerHTML="It's a tie!";
+					userBtn.innerHTML="Reset";
+					centerText.style.fontSize="36pt";
+					return;
+				}
+			}
+			if (WINNER!=0)
+			{
+				centerText.innerHTML=WINNER+" wins!";
+				centerText.style.fontSize="36pt";
+				userBtn.innerHTML="Reset";
+			}
+			else
+			{
+				centerText.style.fontSize="16pt";
+				return;
+			}
+		}
+		
+		function removeUndefinedCards()
+		{
+			for (var i=0; i<playerHand.getNumCards(); i++)
+				if (playerHand.peekCard(i)===undefined)
+					playerHand.removeCard(i);
+			for (var i=0; i<computerHand.getNumCards(); i++)
+				if (computerHand.peekCard(i)===undefined)
+					computerHand.removeCard(i);
+			for (var i=0; i<battle.getNumCards(); i++)
+				if (battle.peekCard(i)===undefined)
+					battle.removeCard(i);
+		}
+		
+		function initialize()
+		{
+			durakDeck=new CardDeck();
+			durakDeck.deck=generateDurakDeck();
+			durakDeck.shuffle();
+			yourTurn=true;
+			tookCards="";
+		
+			playerHandElement=document.getElementById('playerHandDisplay');
+			computerHandElement=document.getElementById('computerHandDisplay');
+			playerHandImageArray=playerHandElement.getElementsByTagName('img');
+			computerHandImageArray=computerHandElement.getElementsByTagName('img');
+			deckDisplay=document.getElementById('count');
+			document.getElementById('trump').src=durakDeck.peekCard(durakDeck.getNumCards()-1).image;
+			koser=durakDeck.peekCard(durakDeck.getNumCards()-1).suit;
+			battlefield=document.getElementById("right");
+			centerText=document.getElementById("centerdeck");
+			battlefieldImageArray=battlefield.getElementsByTagName('img');
+			battle=new CardDeck();
+			beatenCardsCounter=document.getElementById('beatencards');
+			beatPile=new CardDeck();
+			dealHands();
+			userBtn=document.getElementById("btn");
+			popup=document.getElementById('rules');
+			popup.style.marginLeft=(screen.availWidth-500)/2+"px";
+			display();
+		}
+		</script>
+	</head>
+	
+	<body onload="initialize();">
+	<h3 style="text-align:center"><div>Rules: <ins onclick="popup.style.display='inline-block';">Show</ins> / <ins onclick="popup.style.display='none';">Hide</ins></div></h3>
+	<div id="rules"><ins>Starting the game:</ins><br />
+		&nbsp;&nbsp;&nbsp;&nbsp; You start the game.  When you click a card, it goes from your hand into the center.  The computer will try to play a card that has a higher rank, but the same suit as your card.  If it cannot, it will play a trump card, which is a card whose suit is stronger than all other suits.  The trump suit is seen on the last card in the deck, it is face-up.  If the computer still can't beat your card, it will take all cards on the field.<br /><br />
+		<ins>Rules:</ins><br />
+		&nbsp;&nbsp;&nbsp;&nbsp; When it is your turn, you are attacking your opponent.  Attacking is simple, you play a card for your opponent to beat.  If the opponent beats it, you can play another card for the opponent to beat IF the card is the same rank as any cards on the field.  If not, you click "End The Round", so that the computer can go, and all cards on the field go to the Beaten Cards pile.<br />
+		&nbsp;&nbsp;&nbsp;&nbsp; When the computer attacks you, you defend the same way the computer does.  If you beat the computer's card, it will try to play cards that are already on the field.  If you can't beat your opponent's cards, or don't want to, press "Take All Cards" so that the cards go to your hand.<br /><br />
+		<ins>How to Win:</ins><br />
+		&nbsp;&nbsp;&nbsp;&nbsp; After there are no cards left in the deck, the winner is the one who runs out of cards first.  The only way for a draw to happen, is if the computer plays its last card, and you have only one card left as well which can beat it.</div>
+	<span style="float:right; margin-left:-85px;" id='beatencards'>Beaten Cards (0) <br /><br /></span>
+	<img style='float:right; margin-top:20px;' src="./cardimages/back-blue-75-2.png"><button id="btn" onclick='roundEnd(true);'>End The Round</button>
+	<p><div id='computerHandDisplay'></div><br />
+	<div>(<span id='count'></span>)<img src="./cardimages/rotate.png"><img id='trump'><span id="centerdeck"></span></div><br />
+	<div id="playerHandDisplay"></div><br /></p>
+	<p id='right'></p>
+	</body>
+</html>
